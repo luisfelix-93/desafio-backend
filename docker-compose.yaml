@@ -1,0 +1,95 @@
+version: '3.5'
+
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx_gateway
+    ports:
+      - 5000:5000 # NGINX estará acessível pela porta 80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      # - redis
+      - mongo
+      - products-ms
+      - client-ms
+    networks:
+      custom_network:
+        ipv4_address: 192.168.100.10
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo_starstore
+    ports:
+      - 27017:27017
+    volumes:
+      - ./data:/data:db
+      - ./logs:/var/log/mongodb
+    command: "--logpath ./var/log/mongodb/mongodb.log"
+    networks:
+      custom_network:
+        ipv4_address: 192.168.100.3
+
+  rabbitmq:
+    image: rabbitmq:3.9-management
+    container_name: rabbitmq_starstore
+    ports:
+      - 5672:5672 #Porta AMQP
+      - 15672:15672 #Porta RabbitMQ Management
+    networks:
+      custom_network:
+        ipv4_address: 192.168.100.8
+        
+  products-ms:
+    image: luisffilho/product-ms:1.0
+    ports: 
+      - 3000:3000
+    environment:
+      - MONGODB_URI=mongodb://mongo_starstore:27017/products-db
+      - CLIENT_URL=http://192.168.100.5:5050/clients
+      - RABBITMQ_URL=amqp://rabbitmq_starstore:5672
+    depends_on:
+      # - redis
+      - mongo
+      - rabbitmq
+    networks:
+      custom_network:
+        ipv4_address: 192.168.100.4
+
+  client-ms:
+    image: luisffilho/client-ms:1.0
+    ports:
+      - 5050:5050
+    environment:
+      - MONGODB_URI=mongodb://mongo_starstore:27017/clients-db
+      - URL_VIACEP=https://viacep.com.br
+    depends_on:
+      # - redis
+      - mongo
+    networks:
+      custom_network:
+        ipv4_address: 192.168.100.5
+
+  store-ms:
+    image: luisffilho/store-ms:1.0
+    ports:
+      - 6000:6000
+    environment:
+      - MONGODB_URI=mongodb://mongo_starstore:27017/store-db
+      - PRODUCT_URL=http://192.168.100.4:3000/products
+      - CLIENT_URL=http://192.168.100.5:5050/clients
+      - URL_PAYMENT=https://run.mocky.io/v3/232283f0-b58e-4c70-95fc-efe58b1e5627
+      - RABBITMQ_URL=amqp://rabbitmq_starstore:5672
+    depends_on:
+      - mongo
+      - rabbitmq
+    networks:
+      custom_network:
+        ipv4_address: 192.168.100.6
+
+networks:
+  custom_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.100.0/24
