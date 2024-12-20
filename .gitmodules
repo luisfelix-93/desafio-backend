@@ -1,0 +1,9 @@
+[submodule "dev-store-ms"]
+	path = dev-store-ms
+	url = https://github.com/luisfelix-93/dev-store-ms
+[submodule "dev-produtcs-ms"]
+	path = dev-produtcs-ms
+	url = https://github.com/luisfelix-93/dev-produtcs-ms
+[submodule "dev-client-ms"]
+	path = dev-client-ms
+	url = https://github.com/luisfelix-93/dev-client-ms
